@@ -13,6 +13,7 @@ import com.company.exp.ItemNotFoundException;
 import com.company.mapper.ArticleSimpleMapper;
 import com.company.repository.ArticleRepository;
 import com.company.validation.ArticleValidation;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.*;
@@ -23,7 +24,7 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
-
+@Slf4j
 @Service
 public class ArticleService {
     @Value("${server.domain.name}")
@@ -52,6 +53,7 @@ public class ArticleService {
 
         Optional<ArticleEntity> optional = articleRepository.findByTitle(dto.getTitle());
         if (optional.isPresent()) {
+            log.warn("This Article already used! : {}", dto );
             throw new ItemAlreadyExistsException("This Article already used!");
         }
 
@@ -94,6 +96,7 @@ public class ArticleService {
                 .orElseThrow(() -> new ItemNotFoundException("Not Found!"));
 
         if (!entity.getVisible()) {
+            log.warn("not found article: {}", id );
             throw new ItemNotFoundException("Not Found!");
         }
 
@@ -113,6 +116,7 @@ public class ArticleService {
                 .orElseThrow(() -> new ItemNotFoundException("Not Found!"));
 
         if (!entity.getVisible()) {
+            log.warn("not found article : {}", id );
             throw new ItemNotFoundException("Not Found!");
         }
 
@@ -121,11 +125,6 @@ public class ArticleService {
     }
 
     public List<ArticleDTO> getTop5ByTypeId(Integer typeId) {
-        // Sort sort = Sort.by(Sort.Direction.DESC, "createdDate");
-//        List<ArticleEntity> entityList = articleRepository.findTop5ByTypeIdAndStatus(typeId, ArticleStatus.PUBLISHED, sort);
-
-        /*Pageable pageable = PageRequest.of(0, 5, Sort.by(Sort.Direction.DESC, "createdDate"));
-        Page<ArticleEntity> page = articleRepository.findAllByTypeId(typeId, pageable);*/
 
         List<ArticleSimpleMapper> entityList = articleRepository.getTypeId(typeId, ArticleStatus.PUBLISHED.name());
         List<ArticleDTO> dtoList = new LinkedList<>();
@@ -145,6 +144,7 @@ public class ArticleService {
     public ArticleDTO getByIdPublished(Integer articleId, LangEnum lang) {
         Optional<ArticleEntity> optional = articleRepository.findByIdAndStatus(articleId, ArticleStatus.PUBLISHED);
         if (optional.isEmpty()) {
+            log.warn("not found article : {}", articleId );
             throw new ItemNotFoundException("Item not found");
         }
         return toDetailDTO(optional.get(), lang);
@@ -153,6 +153,7 @@ public class ArticleService {
     public ArticleDTO getByIdAdAdmin(Integer articleId, LangEnum lang) {
         Optional<ArticleEntity> optional = articleRepository.findById(articleId);
         if (optional.isEmpty()) {
+            log.warn("not found article : {}", articleId );
             throw new ItemNotFoundException("Item not found");
         }
 
@@ -244,6 +245,7 @@ public class ArticleService {
             return articleRepository.updateStatus(status, aId) > 0;
 
         } catch (RuntimeException e) {
+            log.warn("not found status : {}", status );
             throw new AppBadRequestException("Status not valid!");
         }
     }

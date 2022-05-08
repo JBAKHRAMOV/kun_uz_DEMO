@@ -5,6 +5,7 @@ import com.company.entity.AttachEntity;
 import com.company.exp.AppBadRequestException;
 import com.company.exp.ItemNotFoundException;
 import com.company.repository.AttachRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
@@ -33,6 +34,7 @@ import java.util.Calendar;
 import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 @Service
 public class AttachService {
     @Autowired
@@ -43,19 +45,19 @@ public class AttachService {
     private String domainName;
 
     public AttachDTO upload(MultipartFile file) {
-        String pathFolder = getYmDString(); // 2022/04/23
+        String pathFolder = getYmDString();
         File folder = new File(attachFolder + pathFolder);
         if (!folder.exists()) {
             folder.mkdirs();
         }
 
-        String key = UUID.randomUUID().toString(); // dasdasd-dasdasda-asdasda-asdasd
-        String extension = getExtension(file.getOriginalFilename()); // dasda.asdas.dasd.jpg
+        String key = UUID.randomUUID().toString();
+        String extension = getExtension(file.getOriginalFilename());
 
         AttachEntity entity = saveAttach(key, pathFolder, extension, file);
         AttachDTO dto = toDTO(entity);
 
-        try {// uploads/2022/04/23/dasdasd-dasdasda-asdasda-asdasd.jpg
+        try {
             byte[] bytes = file.getBytes();
             Path path = Paths.get(attachFolder + pathFolder + "/" + key + "." + extension);
             Files.write(path, bytes);
@@ -101,7 +103,7 @@ public class AttachService {
         return new byte[0];
     }
 
-    public ResponseEntity<Resource> download(String key) { // images.png
+    public ResponseEntity<Resource> download(String key) {
         try {
             AttachEntity entity = get(key);
             String path = entity.getPath() + "/" + key + "." + entity.getExtension();
@@ -114,6 +116,7 @@ public class AttachService {
                         .body(resource);
 
             } else {
+                log.warn("cloud not read the file : {}", key );
                 throw new RuntimeException("Could not read the file!");
             }
         } catch (MalformedURLException e) {
@@ -126,10 +129,10 @@ public class AttachService {
         int month = Calendar.getInstance().get(Calendar.MONTH) + 1;
         int day = Calendar.getInstance().get(Calendar.DATE);
 
-        return year + "/" + month + "/" + day; // 2022/04/23
+        return year + "/" + month + "/" + day;
     }
 
-    public String getExtension(String fileName) { // mp3/jpg/npg/mp4.....
+    public String getExtension(String fileName) {
         int lastIndex = fileName.lastIndexOf(".");
         return fileName.substring(lastIndex + 1);
     }
@@ -191,67 +194,5 @@ public class AttachService {
         return attachRepository.findById(id).orElseThrow(() -> {
             throw new ItemNotFoundException("Attach not found");
         });
-    }
-
-    /**
-     * Study purpose
-     */
-    public Resource download_simple(String fileName) {
-        try {
-            Path file = Paths.get("attaches/" + fileName);
-            Resource resource = new UrlResource(file.toUri());
-
-            if (resource.exists() || resource.isReadable()) {
-                return resource;
-            } else {
-                throw new RuntimeException("Could not read the file!");
-            }
-        } catch (MalformedURLException e) {
-            throw new RuntimeException("Error: " + e.getMessage());
-        }
-    }
-
-    public String upload_simple(MultipartFile file) {
-        File folder = new File(attachFolder);
-        if (!folder.exists()) {
-            folder.mkdir();
-        }
-
-        try {
-            byte[] bytes = file.getBytes();
-            Path path = Paths.get(attachFolder + file.getOriginalFilename());
-            Files.write(path, bytes);
-            return file.getOriginalFilename();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-
-    public byte[] open_general_simple(String fileName) {
-        byte[] data;
-        try {
-            Path path = Paths.get(attachFolder + fileName);
-            data = Files.readAllBytes(path);
-            return data;
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return new byte[0];
-    }
-
-    public byte[] open_general2(String fileName) {
-        File file = new File(attachFolder + fileName);
-        FileInputStream fileInputStream = null;
-        byte[] bytes = new byte[(int) file.length()];
-        try {
-            fileInputStream = new FileInputStream(file);
-            fileInputStream.read(bytes);
-            fileInputStream.close();
-            return bytes;
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return new byte[0];
     }
 }

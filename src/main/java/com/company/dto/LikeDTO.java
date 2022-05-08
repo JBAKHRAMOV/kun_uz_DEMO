@@ -5,12 +5,17 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Getter;
 import lombok.Setter;
 
+import javax.validation.constraints.NotNull;
+
 @Getter
 @Setter
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class LikeDTO extends BaseDTO {
+    @NotNull
     private LikeStatus status;
+    @NotNull
     private Integer profileId;
+    @NotNull
     private Integer articleId;
 
 

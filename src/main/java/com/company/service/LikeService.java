@@ -10,6 +10,7 @@ import com.company.exp.AppForbiddenException;
 import com.company.exp.ItemNotFoundException;
 import com.company.mapper.ArticleLikeDislikeMapper;
 import com.company.repository.LikeRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.*;
@@ -19,7 +20,7 @@ import java.time.LocalDateTime;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
-
+@Slf4j
 @Service
 public class LikeService {
     @Autowired
@@ -29,7 +30,6 @@ public class LikeService {
     private ArticleService articleService;
 
     public LikeDTO create(LikeDTO dto, Integer pId) {
-        //     ArticleEntity articleEntity = articleService.get(dto.getArticleId());
         Optional<LikeEntity> oldLikeOptional = likeRepository.findByArticleIdAndProfileId(dto.getArticleId(), pId);
         if (oldLikeOptional.isPresent()) {
             oldLikeOptional.get().setStatus(dto.getStatus());

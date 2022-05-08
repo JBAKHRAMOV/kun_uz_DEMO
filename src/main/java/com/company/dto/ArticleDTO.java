@@ -6,20 +6,26 @@ import com.company.service.ArticleService;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 
+import javax.validation.constraints.NotNull;
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Setter
 @Getter
+@ToString
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ArticleDTO {
     private Integer id;
+    @NotNull
     private String title;
+    @NotNull
     private String description;
+    @NotNull
     private String content;
     private Boolean visible;
-
+    @NotNull
     private Integer profileId;
 
     private LocalDateTime createdDate;

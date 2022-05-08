@@ -11,6 +11,7 @@ import com.company.exp.RegionAlreadyExistsException;
 import com.company.repository.ProfileRepository;
 import com.company.repository.RegionRepository;
 import com.company.validation.RegionValidation;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.language.bm.Lang;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -18,7 +19,7 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-
+@Slf4j
 @Service
 public class RegionService {
     @Autowired
@@ -32,6 +33,7 @@ public class RegionService {
 
         Optional<RegionEntity> optional = regionRepository.findByKey(dto.getKey());
         if (optional.isPresent()) {
+            log.warn("region alredy used : {}", dto );
             throw new RegionAlreadyExistsException("This Region already used!");
         }
 
@@ -52,6 +54,7 @@ public class RegionService {
             list.add(toDTO(entity));
         });
         if (list.isEmpty()) {
+            log.warn(" not found : {}");
             throw new ItemNotFoundException("Not Found!");
         }
         return list;
@@ -83,12 +86,13 @@ public class RegionService {
     }
 
     public RegionDTO update(Integer id, RegionDTO dto) {
-        RegionValidation.isValid(dto); // validation
+        RegionValidation.isValid(dto);
         ProfileEntity profileEntity = profileService.get(dto.getProfileId());
 
         RegionEntity entity = regionRepository.findById(id).orElseThrow(() -> new ItemNotFoundException("Not Found!"));
 
         if (!entity.getVisible()) {
+            log.warn("id not found : {}", id );
             throw new ItemNotFoundException("Not Found!");
         }
 
@@ -104,6 +108,7 @@ public class RegionService {
         RegionEntity entity = regionRepository.findById(id).orElseThrow(() -> new ItemNotFoundException("Not Found!"));
 
         if (!entity.getVisible()) {
+            log.warn("id not found : {}", id );
             throw new ItemNotFoundException("Not Found!");
         }
 
@@ -113,6 +118,7 @@ public class RegionService {
 
     public RegionDTO getById(Integer id, LangEnum lang) {
         RegionEntity regionEntity = regionRepository.findById(id).orElseThrow(() -> {
+            log.warn("id not found : {}", id );
             throw new ItemNotFoundException("Region not found");
         });
 

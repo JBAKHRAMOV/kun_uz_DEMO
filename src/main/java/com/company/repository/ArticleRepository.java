@@ -27,19 +27,11 @@ public interface ArticleRepository extends JpaRepository<ArticleEntity, Integer>
     @Query("update ArticleEntity set visible = :visible where id = :id")
     int updateVisible(@Param("visible") Boolean visible, @Param("id") Integer id);
 
-    public List<ArticleEntity> findTop5ByTypeIdAndStatus(Integer typeId, ArticleStatus status, Sort sort);
-
-    /*@Query("SELECT new ArticleEntity(a.id,a.title,a.description,a.attach.id,a.publishedDate) " +
-            " FROM ArticleEntity a  where  a.type.id =:typeId and status =:status order by createdDate desc")
-    public List<ArticleEntity> getTypeId(@Param("typeId") Integer typeId, @Param("status") ArticleStatus status);*/
-
 
     @Query(value = "SELECT a.id,a.title,a.description,a.attach_id,a.published_date " +
             " FROM article AS a  where  a.type_id =:typeId and status =:status order by created_date desc Limit 5", nativeQuery = true)
     public List<ArticleSimpleMapper> getTypeId(@Param("typeId") Integer typeId, @Param("status") String status);
 
-
-    public Page<ArticleEntity> findAllByTypeId(Integer typeId, Pageable pageable);
 
     public Optional<ArticleEntity> findByIdAndStatus(Integer id, ArticleStatus status);
 
@@ -84,6 +76,6 @@ public interface ArticleRepository extends JpaRepository<ArticleEntity, Integer>
 
     @Transactional
     @Modifying
-    @Query(value = "update ArticleEntity a set viewCount = viewCount + 1 where a.id =:id")
+    @Query("update ArticleEntity a set a.viewCount =a.viewCount + 1 where a.id =:id")
     void updateViewCount(@Param("id") Integer id);
 }

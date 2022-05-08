@@ -7,6 +7,7 @@ import com.company.enums.ProfileRole;
 import com.company.exp.AppForbiddenException;
 import com.company.exp.ItemNotFoundException;
 import com.company.repository.CommentRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
@@ -14,7 +15,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.LinkedList;
 import java.util.List;
-
+@Slf4j
 @Service
 public class CommentService {
     @Autowired
@@ -24,7 +25,6 @@ public class CommentService {
 
     public CommentDTO create(CommentDTO dto, Integer pId) {
         ArticleEntity articleEntity = articleService.get(dto.getArticleId());
-        // validation
         CommentEntity commentEntity = new CommentEntity();
         commentEntity.setContent(dto.getContent());
         commentEntity.setArticleId(dto.getArticleId());
@@ -37,8 +37,9 @@ public class CommentService {
 
     public boolean update(Integer commentId, CommentDTO dto, Integer pId) {
         CommentEntity commentEntity = get(commentId);
-        // validation
+
         if (!commentEntity.getProfileId().equals(pId)) {
+            log.warn("not access : {}", dto );
             throw new AppForbiddenException("Not Access");
         }
         commentEntity.setContent(dto.getContent());
@@ -97,6 +98,7 @@ public class CommentService {
 
     public CommentEntity get(Integer commentId) {
         return commentRepository.findById(commentId).orElseThrow(() -> {
+            log.warn("id not found : {}", commentId );
             throw new ItemNotFoundException("Comment Not found");
         });
     }

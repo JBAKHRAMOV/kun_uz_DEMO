@@ -9,6 +9,7 @@ import com.company.exp.EmailAlreadyExistsException;
 import com.company.exp.ItemNotFoundException;
 import com.company.repository.ProfileRepository;
 import com.company.validation.ProfileValidation;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
@@ -17,7 +18,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-
+@Slf4j
 @Service
 public class ProfileService {
     @Autowired
@@ -31,6 +32,7 @@ public class ProfileService {
 
         Optional<ProfileEntity> optional = profileRepository.findByEmail(dto.getEmail());
         if (optional.isPresent()) {
+            log.warn("email alredy exists : {}", dto );
             throw new EmailAlreadyExistsException("Email Already Exits");
         }
 
@@ -54,6 +56,7 @@ public class ProfileService {
             list.add(toDTO(courseEntity));
         });
         if (list.isEmpty()) {
+            log.warn(" not found : {}");
             throw new ItemNotFoundException("Not Found!");
         }
         return list;
@@ -62,6 +65,7 @@ public class ProfileService {
     public ProfileDTO getById(Integer id) {
         ProfileEntity entity = profileRepository.findById(id).orElseThrow(() -> new ItemNotFoundException("Not Found!"));
         if (!entity.getVisible()) {
+            log.warn(" not found : {}" );
             throw new ItemNotFoundException("Not Found!");
         }
         return toDTO(entity);
@@ -76,12 +80,14 @@ public class ProfileService {
 
         Optional<ProfileEntity> optional = profileRepository.findByEmail(dto.getEmail());
         if (optional.isPresent()) {
+            log.warn("email alredy used : {}", dto );
             throw new EmailAlreadyExistsException("This Email already used!");
         }
 
         ProfileEntity entity = profileRepository.findById(id).orElseThrow(() -> new ItemNotFoundException("Not Found!"));
 
         if (!entity.getVisible()) {
+            log.warn("id not found : {}", id );
             throw new ItemNotFoundException("Not Found!");
         }
 
@@ -99,6 +105,7 @@ public class ProfileService {
         ProfileEntity entity = profileRepository.findById(id).orElseThrow(() -> new ItemNotFoundException("Not Found!"));
 
         if (!entity.getVisible()) {
+            log.warn("id not found : {}", id );
             throw new ItemNotFoundException("Not Found!");
         }
 
@@ -114,9 +121,6 @@ public class ProfileService {
         }
         profileRepository.updateAttach(attachId, pId);
 
-        /*AttachEntity attachEntity = attachService.get(attachId);
-        profileEntity.setAttach(attachEntity);
-        profileRepository.save(profileEntity);*/
         return true;
     }
 

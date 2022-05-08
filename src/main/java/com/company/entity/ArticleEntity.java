@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
-@Table(name = "article")
+@Table(name = "article",uniqueConstraints={@UniqueConstraint(columnNames = {"title" , "description"})})
 @Setter
 @Getter
 @TypeDef(name = "list-array", typeClass = ListArrayType.class)
@@ -71,6 +71,7 @@ public class ArticleEntity extends BaseEntity {
     @Type(type = "list-array")
     @Column(name = "tag_list", columnDefinition = "integer[]")
     private List<Integer> tagList;
+
 
     public ArticleEntity() {
     }

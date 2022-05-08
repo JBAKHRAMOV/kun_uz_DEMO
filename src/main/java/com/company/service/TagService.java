@@ -7,6 +7,7 @@ import com.company.exp.ItemAlreadyExistsException;
 import com.company.exp.ItemNotFoundException;
 import com.company.repository.TagRepository;
 import com.company.validation.TagValidation;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
@@ -17,19 +18,19 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 
+@Slf4j
 @Service
 public class TagService {
     @Autowired
     private TagRepository tagRepository;
-    @Autowired
-    private ProfileService profileService;
 
     public TagDTO create(TagDTO dto, Integer pId) {
 
-        TagValidation.isValid(dto); // validation
+        TagValidation.isValid(dto);
 
         Optional<TagEntity> optional = tagRepository.findByKey(dto.getKey());
         if (optional.isPresent()) {
+            log.warn("tag alredy used : {}", dto );
             throw new ItemAlreadyExistsException("This Tag already used!");
         }
 
@@ -75,14 +76,14 @@ public class TagService {
     }
 
     public TagDTO update(Integer id, TagDTO dto, Integer pId) {
-//        ProfileEntity profileEntity = profileService.get(pId);
 
-        TagValidation.isValid(dto); // validation
+        TagValidation.isValid(dto);
 
         TagEntity entity = tagRepository.findById(id)
                 .orElseThrow(() -> new ItemNotFoundException("Not Found!"));
 
         if (!entity.getVisible()) {
+            log.warn("id not found : {}", id );
             throw new ItemNotFoundException("Not Found!");
         }
 
@@ -90,7 +91,6 @@ public class TagService {
         entity.setNameUz(dto.getNameUz());
         entity.setNameEn(dto.getNameEn());
         entity.setNameRu(dto.getNameRu());
-//        entity.setProfile(profileEntity);
         entity.setProfileId(pId);
         entity.setUpdatedDate(LocalDateTime.now());
 
@@ -103,6 +103,7 @@ public class TagService {
                 .orElseThrow(() -> new ItemNotFoundException("Not Found!"));
 
         if (!entity.getVisible()) {
+            log.warn("id not found : {}", id );
             throw new ItemNotFoundException("Not Found!");
         }
 
@@ -117,7 +118,6 @@ public class TagService {
         dto.setNameEn(entity.getNameEn());
         dto.setNameUz(entity.getNameUz());
         dto.setNameRu(entity.getNameRu());
-//        dto.setProfileId(entity.getProfile().getId());
         dto.setProfileId(entity.getProfileId());
         dto.setUpdatedDate(entity.getUpdatedDate());
         dto.setCreatedDate(entity.getCreatedDate());

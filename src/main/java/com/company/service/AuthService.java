@@ -15,12 +15,14 @@ import com.company.exp.PasswordOrEmailWrongException;
 import com.company.repository.ProfileRepository;
 import com.company.util.JwtUtil;
 import io.jsonwebtoken.JwtException;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
 
+@Slf4j
 @Service
 public class AuthService {
     @Autowired
@@ -37,11 +39,13 @@ public class AuthService {
         Optional<ProfileEntity> optional =
                 profileRepository.findByEmailAndPassword(dto.getEmail(), pswd);
         if (optional.isEmpty()) {
+            log.info("password or password wrong : {}", dto );
             throw new PasswordOrEmailWrongException("Password or email wrong!");
         }
 
         ProfileEntity entity = optional.get();
         if (!entity.getStatus().equals(ProfileStatus.ACTIVE)) {
+            log.warn("no access : {}", dto );
             throw new AppForbiddenException("No Access bratishka.");
         }
 
@@ -67,6 +71,7 @@ public class AuthService {
         isValidFoRegistration(dto);
         Optional<ProfileEntity> optional = profileRepository.findByEmail(dto.getEmail());
         if (optional.isPresent()) {
+            log.warn("Email already axists : {}", dto );
             throw new EmailAlreadyExistsException("Email Already Exits");
         }
 
@@ -111,12 +116,9 @@ public class AuthService {
         try {
             userId = JwtUtil.decodeAndGetId(jwt);
         } catch (JwtException e) {
+            log.warn("verification not completed: {}", jwt );
             throw new AppBadRequestException("Verification not completed");
         }
-
-       /* ProfileEntity profileEntity = profileService.get(userId);
-        profileEntity.setStatus(ProfileStatus.ACTIVE);
-        profileRepository.save(profileEntity);*/
         profileRepository.updateStatus(ProfileStatus.ACTIVE, userId);
     }
 

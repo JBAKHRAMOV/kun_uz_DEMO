@@ -10,6 +10,7 @@ import com.company.exp.AppForbiddenException;
 import com.company.exp.CategoryAlredyExistsException;
 import com.company.repository.CategoryRepository;
 import com.company.validation.CategoryValidation;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
@@ -18,7 +19,7 @@ import org.springframework.web.server.MethodNotAllowedException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-
+@Slf4j
 @Service
 public class CategoryService {
     @Autowired
@@ -29,11 +30,13 @@ public class CategoryService {
     public CategoryDTO create(CategoryDTO dto, Integer pId) {
         ProfileEntity profile = profileService.get(pId);
         if (!profile.getRole().equals(ProfileRole.ADMIN)) {
+            log.warn("not access : {}", dto );
             throw new AppForbiddenException("Not access");
         }
         CategoryValidation.isValid(dto);
         CategoryEntity category = categoryRepository.findByKey(dto.getKey());
         if (category != null) {
+            log.warn("category alredy exists : {}", dto );
             throw new CategoryAlredyExistsException("Category Already Exists");
         }
         CategoryEntity entity = new CategoryEntity();
@@ -63,6 +66,7 @@ public class CategoryService {
     public CategoryDTO getById(Integer id) {
         Optional<CategoryEntity> optional = categoryRepository.findById(id);
         if (optional.isEmpty()) {
+            log.warn("id not found : {}", id );
             throw new AppBadRequestException("Id Not Found");
         }
         CategoryEntity category = optional.get();
@@ -72,6 +76,7 @@ public class CategoryService {
     public CategoryDTO getById(Integer id, LangEnum lang) {
         Optional<CategoryEntity> optional = categoryRepository.findById(id);
         if (optional.isEmpty()) {
+            log.warn("id not found : {}", id );
             throw new AppBadRequestException("Id Not Found");
         }
         CategoryEntity category = optional.get();
@@ -81,15 +86,18 @@ public class CategoryService {
     public String update(Integer id, CategoryDTO dto) {
         ProfileEntity profile = profileService.get(dto.getProfileId());
         if (!profile.getRole().equals(ProfileRole.ADMIN)) {
+            log.warn("not access : {}", dto );
             throw new AppForbiddenException("Not access");
         }
         Optional<CategoryEntity> optional = categoryRepository.findById(id);
         if (optional.isEmpty()) {
+            log.warn("id not found : {}", id );
             throw new AppBadRequestException("Id Not Found");
         }
         CategoryValidation.isValid(dto);
         CategoryEntity entity = categoryRepository.findByKey(dto.getKey());
         if (entity != null) {
+            log.warn("category alredy exists : {}", dto );
             throw new CategoryAlredyExistsException("Category alredy exists");
         }
         CategoryEntity category = optional.get();
@@ -106,6 +114,7 @@ public class CategoryService {
     public String delete(Integer id) {
         Optional<CategoryEntity> optional = categoryRepository.findById(id);
         if (optional.isEmpty()) {
+            log.warn("id not found : {}", id );
             throw new AppBadRequestException("Id Not Found");
         }
         CategoryEntity entity = optional.get();

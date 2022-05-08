@@ -5,6 +5,7 @@ import com.company.entity.EmailEntity;
 import com.company.enums.EmailType;
 import com.company.exp.ItemNotFoundException;
 import com.company.repository.EmailRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -16,7 +17,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
-
+@Slf4j
 @Service
 public class EmailService {
     @Autowired
