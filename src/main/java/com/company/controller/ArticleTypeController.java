@@ -43,7 +43,7 @@ public class ArticleTypeController {
     @GetMapping("/public/list/{lang}")
     public ResponseEntity<?> getList(@PathVariable("lang") LangEnum lang) {
         log.info("get list : {}", lang );
-        return ResponseEntity.ok(articleTypeService.getRegionList(lang));
+        return ResponseEntity.ok(articleTypeService.getAllByLang(lang));
     }
 
     @PutMapping("/adm/{id}")
