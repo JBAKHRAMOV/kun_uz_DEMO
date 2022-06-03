@@ -1,55 +1,41 @@
 package com.company.service;
 
 import com.company.dto.ArticleDTO;
-import com.company.dto.AttachDTO;
-import com.company.dto.LikeDTO;
 import com.company.entity.ArticleEntity;
 import com.company.entity.ProfileEntity;
 import com.company.enums.ArticleStatus;
 import com.company.enums.LangEnum;
-import com.company.exp.AppBadRequestException;
 import com.company.exp.ItemAlreadyExistsException;
 import com.company.exp.ItemNotFoundException;
 import com.company.mapper.ArticleSimpleMapper;
 import com.company.repository.ArticleRepository;
-import com.company.validation.ArticleValidation;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class ArticleService {
     @Value("${server.domain.name}")
     private String domainName;
 
-    @Autowired
-    private ArticleRepository articleRepository;
-    @Autowired
-    private ProfileService profileService;
-    @Autowired
-    private AttachService attachService;
-    @Autowired
-    private LikeService likeService;
-    @Autowired
-    private CategoryService categoryService;
-    @Autowired
-    private RegionService regionService;
-    @Autowired
-    private ArticleTypeService articleTypeService;
-    @Autowired
-    private TagService tagService;
+    private final   ArticleRepository articleRepository;
+    private final ProfileService profileService;
+    private final AttachService attachService;
+    private final LikeService likeService;
+    private final CategoryService categoryService;
+    private final RegionService regionService;
+    private final ArticleTypeService articleTypeService;
+    private final TagService tagService;
 
 
     public ArticleDTO create(ArticleDTO dto, Integer pId) {
-        ArticleValidation.isValid(dto); // validation
 
         Optional<ArticleEntity> optional = articleRepository.findByTitle(dto.getTitle());
         if (optional.isPresent()) {
@@ -78,181 +64,118 @@ public class ArticleService {
     public List<ArticleDTO> list(int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdDate"));
 
-        List<ArticleDTO> dtoList = new ArrayList<>();
-
-        articleRepository.findByVisible(true, pageable).forEach(entity -> {
-            dtoList.add(toDTO(entity));
-        });
-
-        return dtoList;
+        return articleRepository.findByVisible(true, pageable)
+                .stream()
+                .map(this::toDTO)
+                .toList();
     }
 
-    public ArticleDTO update(Integer id, ArticleDTO dto, Integer pId) {
-        ProfileEntity profileEntity = profileService.get(pId);
+    public Boolean update(Integer id, ArticleDTO dto, Integer pId) {
+        ProfileEntity profile = profileService.get(pId);
 
-        ArticleValidation.isValid(dto); // validation
+        Integer aId = getOrCheckByVisable(id).getId();
 
-        ArticleEntity entity = articleRepository.findById(id)
-                .orElseThrow(() -> new ItemNotFoundException("Not Found!"));
-
-        if (!entity.getVisible()) {
-            log.warn("not found article: {}", id );
-            throw new ItemNotFoundException("Not Found!");
-        }
-
-        entity.setTitle(dto.getTitle());
-        entity.setDescription(dto.getDescription());
-        entity.setContent(dto.getContent());
-        ;
-        entity.setProfile(profileEntity);
-        entity.setUpdatedDate(LocalDateTime.now());
-
-        articleRepository.save(entity);
-        return toDTO(entity);
+        return 0 < articleRepository.updateDetail(dto.getTitle(), dto.getDescription(), dto.getContent(), profile, LocalDateTime.now(), aId);
     }
 
     public Boolean delete(Integer id) {
-        ArticleEntity entity = articleRepository.findById(id)
-                .orElseThrow(() -> new ItemNotFoundException("Not Found!"));
+        getOrCheckByVisable(id);
 
-        if (!entity.getVisible()) {
-            log.warn("not found article : {}", id );
-            throw new ItemNotFoundException("Not Found!");
-        }
-
-        int n = articleRepository.updateVisible(false, id);
-        return n > 0;
+        return 0 < articleRepository.updateVisible(false, id);
     }
 
     public List<ArticleDTO> getTop5ByTypeId(Integer typeId) {
-
-        List<ArticleSimpleMapper> entityList = articleRepository.getTypeId(typeId, ArticleStatus.PUBLISHED.name());
-        List<ArticleDTO> dtoList = new LinkedList<>();
-        entityList.forEach(entity -> {
-            ArticleDTO dto = new ArticleDTO();
-            dto.setId(entity.getId());
-            dto.setTitle(entity.getTitle());
-            dto.setDescription(entity.getDescription());
-            dto.setPublishedDate(entity.getPublished_date());
-
-            dto.setImage(attachService.toOpenURLDTO(entity.getAttach_id()));
-            dtoList.add(dto);
-        });
-        return dtoList;
+       return articleRepository.getTypeId(typeId, ArticleStatus.PUBLISHED.name())
+                .stream()
+                .map(this::toSimpleDTO)
+                .toList();
     }
 
     public ArticleDTO getByIdPublished(Integer articleId, LangEnum lang) {
-        Optional<ArticleEntity> optional = articleRepository.findByIdAndStatus(articleId, ArticleStatus.PUBLISHED);
-        if (optional.isEmpty()) {
-            log.warn("not found article : {}", articleId );
-            throw new ItemNotFoundException("Item not found");
-        }
-        return toDetailDTO(optional.get(), lang);
+        var entity = articleRepository.findByIdAndStatus(articleId, ArticleStatus.PUBLISHED)
+                .orElseThrow(()->new ItemNotFoundException("Item not found"));
+
+        return toDetailDTO(entity, lang);
     }
 
     public ArticleDTO getByIdAdAdmin(Integer articleId, LangEnum lang) {
-        Optional<ArticleEntity> optional = articleRepository.findById(articleId);
-        if (optional.isEmpty()) {
-            log.warn("not found article : {}", articleId );
-            throw new ItemNotFoundException("Item not found");
-        }
+        var entity = articleRepository.findById(articleId)
+                .orElseThrow(()->new ItemNotFoundException("Item not found"));
 
-        return toDetailDTO(optional.get(), lang);
+        return toDetailDTO(entity, lang);
     }
 
     public PageImpl<ArticleDTO> publishedListByRegion(Integer regionId, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdDate"));
 
-        List<ArticleDTO> dtoList = new ArrayList<>();
+        var pagination=articleRepository.findByRegionIdAndStatus(regionId, pageable, ArticleStatus.PUBLISHED);
 
-        Page<ArticleEntity> entityPage = articleRepository.findByRegionIdAndStatus(regionId, pageable, ArticleStatus.PUBLISHED);
-        entityPage.stream().forEach(entity -> {
-            dtoList.add(toSimpleDTO(entity));
-        });
+        var list= pagination
+                .stream()
+                .map(this::toSimpleDTO)
+                .toList();
 
-        return new PageImpl<>(dtoList, pageable, entityPage.getTotalElements());
+        return new PageImpl<>(list, pageable, pagination.getTotalElements());
 
     }
 
     public PageImpl<ArticleDTO> publishedListByCategoryId(int page, int size, Integer cId) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdDate"));
 
-        List<ArticleDTO> dtoList = new ArrayList<>();
+        var pagination = articleRepository.findByCategoryIdAndStatus(cId, pageable, ArticleStatus.PUBLISHED);
+        var list=pagination
+                .stream()
+                .map(this::toSimpleDTO)
+                .toList();
 
-        Page<ArticleEntity> entityPage = articleRepository.findByCategoryIdAndStatus(cId, pageable, ArticleStatus.PUBLISHED);
-        entityPage.stream().forEach(entity -> {
-            dtoList.add(toSimpleDTO(entity));
-        });
-
-        return new PageImpl<>(dtoList, pageable, entityPage.getTotalElements());
+        return new PageImpl<>(list, pageable, pagination.getTotalElements());
     }
 
     public PageImpl<ArticleDTO> publishedListByTypeId(int page, int size, Integer tId) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdDate"));
 
-        List<ArticleDTO> dtoList = new ArrayList<>();
+        var pagination= articleRepository.findByTypeIdAndStatus(tId, pageable, ArticleStatus.PUBLISHED);
 
-        Page<ArticleEntity> entityPage = articleRepository.findByTypeIdAndStatus(tId, pageable, ArticleStatus.PUBLISHED);
-        entityPage.stream().forEach(entity -> {
-            dtoList.add(toSimpleDTO(entity));
-        });
+        var list=pagination
+                .stream()
+                .map(this::toSimpleDTO)
+                .toList();
 
-        return new PageImpl<>(dtoList, pageable, entityPage.getTotalElements());
+        return new PageImpl<>(list, pageable, pagination.getTotalElements());
     }
 
     public List<ArticleDTO> last4() {
-        List<ArticleDTO> dtoList = new ArrayList<>();
-
-        List<ArticleSimpleMapper> entityPage = articleRepository.getLast4(ArticleStatus.PUBLISHED.name());
-        entityPage.forEach(entity -> {
-            dtoList.add(toSimpleDTO(entity));
-        });
-
-        return dtoList;
+        return articleRepository.getLast4(ArticleStatus.PUBLISHED.name())
+                .stream()
+                .map(this::toSimpleDTO)
+                .toList();
     }
 
     public List<ArticleDTO> top4ByRegionId(Integer rId) {
-//        Pageable pageable = PageRequest.of(0, 4, Sort.by(Sort.Direction.DESC, "createdDate"));
-
-        List<ArticleDTO> dtoList = new ArrayList<>();
-
-        List<ArticleSimpleMapper> entityPage = articleRepository.getByRegionIdLast4(rId, ArticleStatus.PUBLISHED.name());
-        entityPage.forEach(entity -> {
-            dtoList.add(toSimpleDTO(entity));
-        });
-
-        return dtoList;
+        return articleRepository.getByRegionIdLast4(rId, ArticleStatus.PUBLISHED.name())
+                .stream()
+                .map(this::toSimpleDTO)
+                .toList();
     }
 
     public List<ArticleDTO> top4ByCategoryId(Integer cId) {
-        List<ArticleDTO> dtoList = new ArrayList<>();
-
-        List<ArticleSimpleMapper> entityPage = articleRepository.getByCategoryIdLast4(cId, ArticleStatus.PUBLISHED.name());
-        entityPage.forEach(entity -> {
-            dtoList.add(toSimpleDTO(entity));
-        });
-
-        return dtoList;
+        return articleRepository.getByCategoryIdLast4(cId, ArticleStatus.PUBLISHED.name())
+                .stream()
+                .map(this::toSimpleDTO)
+                .toList();
     }
 
     public Boolean changeStatus(Integer aId, ArticleStatus status) {
-        ArticleEntity entity = get(aId);
-        try {
-            if (entity.getStatus().equals(status)) {
-                return false;
-            }
-            entity.setStatus(status);
-            return articleRepository.updateStatus(status, aId) > 0;
+        var articleStatus = getOrCheckByVisable(aId).getStatus();
+        if (articleStatus.equals(status))
+            return false;
 
-        } catch (RuntimeException e) {
-            log.warn("not found status : {}", status );
-            throw new AppBadRequestException("Status not valid!");
-        }
+        return articleRepository.updateStatus(status, aId) > 0;
     }
 
     public String getShared(LangEnum lang, Integer id) {
-        ArticleEntity article = get(id);
-        articleRepository.updateSharedCount(article.getSharedCount() + 1, id);
+        getOrCheckByVisable(id);
+        articleRepository.updateSharedCount( id);
         return domainName + "/article/" + lang + "/" + id;
     }
 
@@ -282,6 +205,7 @@ public class ArticleService {
         dto.setPublishedDate(entity.getPublished_date());
 
         dto.setImage(attachService.toOpenURLDTO(entity.getAttach_id()));
+
 
         return dto;
     }
@@ -316,9 +240,19 @@ public class ArticleService {
         return dto;
     }
 
-    public ArticleEntity get(Integer articleId) {
+    public ArticleEntity checkOrGet(Integer articleId) {
         return articleRepository.findById(articleId).orElseThrow(() -> {
             throw new ItemNotFoundException("Article Not found");
         });
+    }
+
+    public ArticleEntity getOrCheckByVisable(Integer articleId) {
+        var article= articleRepository.findById(articleId).orElseThrow(() -> {
+            throw new ItemNotFoundException("Article Not found");
+        });
+        if (!article.getVisible()){
+            throw new ItemNotFoundException("Article Not found");
+        }
+        return article;
     }
 }

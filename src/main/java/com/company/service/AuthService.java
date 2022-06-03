@@ -56,6 +56,7 @@ public class AuthService {
         profile.setSurname(entity.getSurname());
         profile.setRole(entity.getRole());
         profile.setJwt(JwtUtil.encode(entity.getId(), entity.getRole()));
+        System.out.println(JwtUtil.decodeAndGetId(JwtUtil.encode(entity.getId(), entity.getRole())));
 
         // image
         AttachEntity image = entity.getAttach();
