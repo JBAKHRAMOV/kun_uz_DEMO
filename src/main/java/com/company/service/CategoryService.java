@@ -10,6 +10,7 @@ import com.company.exp.AppForbiddenException;
 import com.company.exp.CategoryAlredyExistsException;
 import com.company.repository.CategoryRepository;
 import com.company.validation.CategoryValidation;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.*;
@@ -21,11 +22,10 @@ import java.util.List;
 import java.util.Optional;
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class CategoryService {
-    @Autowired
-    private ProfileService profileService;
-    @Autowired
-    private CategoryRepository categoryRepository;
+    private final ProfileService profileService;
+    private final CategoryRepository categoryRepository;
 
     public CategoryDTO create(CategoryDTO dto, Integer pId) {
         ProfileEntity profile = profileService.get(pId);

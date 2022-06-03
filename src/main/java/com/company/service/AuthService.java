@@ -28,7 +28,6 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class AuthService {
     private final ProfileRepository profileRepository;
-    private final ProfileService profileService;
     private final EmailService emailService;
     private final AttachService attachService;
 
