@@ -24,7 +24,7 @@ public class CommentService {
     private ArticleService articleService;
 
     public CommentDTO create(CommentDTO dto, Integer pId) {
-        ArticleEntity articleEntity = articleService.get(dto.getArticleId());
+        ArticleEntity articleEntity = articleService.checkOrGet(dto.getArticleId());
         CommentEntity commentEntity = new CommentEntity();
         commentEntity.setContent(dto.getContent());
         commentEntity.setArticleId(dto.getArticleId());

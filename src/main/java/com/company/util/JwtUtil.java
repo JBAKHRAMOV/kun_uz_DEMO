@@ -27,14 +27,13 @@ public class JwtUtil {
         jwtBuilder.setIssuedAt(new Date()); // 10:15
         jwtBuilder.signWith(SignatureAlgorithm.HS256, secretKey);
         jwtBuilder.setExpiration(new Date(System.currentTimeMillis() + (minute * 60 * 1000)));
-        jwtBuilder.setIssuer("mazgi production");
+        jwtBuilder.setIssuer("kun uz");
 
         if (role != null) {
             jwtBuilder.claim("role", role);
         }
 
-        String jwt = jwtBuilder.compact();
-        return jwt;
+        return jwtBuilder.compact();
     }
 
     public static ProfileJwtDTO decode(String jwt) {

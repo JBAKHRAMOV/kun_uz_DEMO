@@ -2,6 +2,7 @@ package com.company.repository;
 
 import com.company.entity.ArticleEntity;
 import com.company.entity.ArticleTypeEntity;
+import com.company.entity.ProfileEntity;
 import com.company.enums.ArticleStatus;
 import com.company.mapper.ArticleSimpleMapper;
 import org.springframework.data.domain.Page;
@@ -13,6 +14,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import javax.transaction.Transactional;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -63,12 +65,6 @@ public interface ArticleRepository extends JpaRepository<ArticleEntity, Integer>
     @Query("update ArticleEntity set status = :status where id = :id")
     int updateStatus(@Param("status") ArticleStatus status, @Param("id") Integer id);
 
-
-    @Modifying
-    @Transactional
-    @Query(value = "update ArticleEntity set sharedCount= :shared where id=:id")
-    void updateSharedCount(@Param("shared") Integer share, @Param("id") Integer id);
-
     @Modifying
     @Transactional
     @Query(value = "update ArticleEntity set sharedCount= sharedCount +1 where id=:id")
@@ -78,4 +74,10 @@ public interface ArticleRepository extends JpaRepository<ArticleEntity, Integer>
     @Modifying
     @Query("update ArticleEntity a set a.viewCount =a.viewCount + 1 where a.id =:id")
     void updateViewCount(@Param("id") Integer id);
+    @Transactional
+    @Modifying
+    @Query("update ArticleEntity set title =:title, description=:des, content=:con, profile=:profile, updatedDate=:updDate where id =:id")
+    int updateDetail(@Param("title") String title, @Param("des") String des,
+                      @Param("con") String con, @Param("profile") ProfileEntity profile,
+                      @Param("updDate") LocalDateTime updDate, @Param("id") Integer id);
 }
