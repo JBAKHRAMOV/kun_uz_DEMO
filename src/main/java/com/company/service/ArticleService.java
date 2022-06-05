@@ -1,6 +1,9 @@
 package com.company.service;
 
-import com.company.dto.ArticleDTO;
+import com.company.dto.request.ArticleRequestDTO;
+import com.company.dto.responce.ArticleDetailDTO;
+import com.company.dto.responce.ArticleResponseDTO;
+import com.company.dto.responce.ArticleSimpleDTO;
 import com.company.entity.ArticleEntity;
 import com.company.entity.ProfileEntity;
 import com.company.enums.ArticleStatus;
@@ -35,7 +38,7 @@ public class ArticleService {
     private final TagService tagService;
 
 
-    public ArticleDTO create(ArticleDTO dto, Integer pId) {
+    public ArticleResponseDTO create(ArticleRequestDTO dto, Integer pId) {
 
         Optional<ArticleEntity> optional = articleRepository.findByTitle(dto.getTitle());
         if (optional.isPresent()) {
@@ -61,7 +64,7 @@ public class ArticleService {
         return toDTO(entity);
     }
 
-    public List<ArticleDTO> list(int page, int size) {
+    public List<ArticleResponseDTO> list(int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdDate"));
 
         return articleRepository.findByVisible(true, pageable)
@@ -70,8 +73,8 @@ public class ArticleService {
                 .toList();
     }
 
-    public Boolean update(Integer id, ArticleDTO dto, Integer pId) {
-        ProfileEntity profile = profileService.get(pId);
+    public Boolean update(Integer id, ArticleRequestDTO dto, Integer pId) {
+        ProfileEntity profile = profileService.checkOrGet(pId);
 
         Integer aId = getOrCheckByVisable(id).getId();
 
@@ -84,28 +87,28 @@ public class ArticleService {
         return 0 < articleRepository.updateVisible(false, id);
     }
 
-    public List<ArticleDTO> getTop5ByTypeId(Integer typeId) {
+    public List<ArticleSimpleDTO> getTop5ByTypeId(Integer typeId) {
        return articleRepository.getTypeId(typeId, ArticleStatus.PUBLISHED.name())
                 .stream()
                 .map(this::toSimpleDTO)
                 .toList();
     }
 
-    public ArticleDTO getByIdPublished(Integer articleId, LangEnum lang) {
+    public ArticleDetailDTO getByIdPublished(Integer articleId, LangEnum lang) {
         var entity = articleRepository.findByIdAndStatus(articleId, ArticleStatus.PUBLISHED)
                 .orElseThrow(()->new ItemNotFoundException("Item not found"));
 
         return toDetailDTO(entity, lang);
     }
 
-    public ArticleDTO getByIdAdAdmin(Integer articleId, LangEnum lang) {
+    public ArticleDetailDTO getByIdAdAdmin(Integer articleId, LangEnum lang) {
         var entity = articleRepository.findById(articleId)
                 .orElseThrow(()->new ItemNotFoundException("Item not found"));
 
         return toDetailDTO(entity, lang);
     }
 
-    public PageImpl<ArticleDTO> publishedListByRegion(Integer regionId, int page, int size) {
+    public PageImpl<ArticleSimpleDTO> publishedListByRegion(Integer regionId, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdDate"));
 
         var pagination=articleRepository.findByRegionIdAndStatus(regionId, pageable, ArticleStatus.PUBLISHED);
@@ -119,7 +122,7 @@ public class ArticleService {
 
     }
 
-    public PageImpl<ArticleDTO> publishedListByCategoryId(int page, int size, Integer cId) {
+    public PageImpl<ArticleSimpleDTO> publishedListByCategoryId(int page, int size, Integer cId) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdDate"));
 
         var pagination = articleRepository.findByCategoryIdAndStatus(cId, pageable, ArticleStatus.PUBLISHED);
@@ -131,7 +134,7 @@ public class ArticleService {
         return new PageImpl<>(list, pageable, pagination.getTotalElements());
     }
 
-    public PageImpl<ArticleDTO> publishedListByTypeId(int page, int size, Integer tId) {
+    public PageImpl<ArticleSimpleDTO> publishedListByTypeId(int page, int size, Integer tId) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdDate"));
 
         var pagination= articleRepository.findByTypeIdAndStatus(tId, pageable, ArticleStatus.PUBLISHED);
@@ -144,21 +147,21 @@ public class ArticleService {
         return new PageImpl<>(list, pageable, pagination.getTotalElements());
     }
 
-    public List<ArticleDTO> last4() {
+    public List<ArticleSimpleDTO> last4() {
         return articleRepository.getLast4(ArticleStatus.PUBLISHED.name())
                 .stream()
                 .map(this::toSimpleDTO)
                 .toList();
     }
 
-    public List<ArticleDTO> top4ByRegionId(Integer rId) {
+    public List<ArticleSimpleDTO> top4ByRegionId(Integer rId) {
         return articleRepository.getByRegionIdLast4(rId, ArticleStatus.PUBLISHED.name())
                 .stream()
                 .map(this::toSimpleDTO)
                 .toList();
     }
 
-    public List<ArticleDTO> top4ByCategoryId(Integer cId) {
+    public List<ArticleSimpleDTO> top4ByCategoryId(Integer cId) {
         return articleRepository.getByCategoryIdLast4(cId, ArticleStatus.PUBLISHED.name())
                 .stream()
                 .map(this::toSimpleDTO)
@@ -183,8 +186,8 @@ public class ArticleService {
         articleRepository.updateViewCount(articleId);
     }
 
-    public ArticleDTO toDetailDTO(ArticleEntity entity, LangEnum lang) {
-        ArticleDTO dto = toDTO(entity);
+    public ArticleDetailDTO toDetailDTO(ArticleEntity entity, LangEnum lang) {
+        ArticleDetailDTO dto = new ArticleDetailDTO(toDTO(entity));
 
         dto.setViewCount(entity.getViewCount());
         dto.setSharedCount(entity.getSharedCount());
@@ -197,46 +200,42 @@ public class ArticleService {
         return dto;
     }
 
-    private ArticleDTO toSimpleDTO(ArticleSimpleMapper entity) {
-        ArticleDTO dto = new ArticleDTO();
+    private ArticleSimpleDTO toSimpleDTO(ArticleSimpleMapper entity) {
+        ArticleSimpleDTO dto = new ArticleSimpleDTO();
         dto.setId(entity.getId());
         dto.setTitle(entity.getTitle());
         dto.setDescription(entity.getDescription());
         dto.setPublishedDate(entity.getPublished_date());
 
-        dto.setImage(attachService.toOpenURLDTO(entity.getAttach_id()));
+        dto.setAttachUrl(attachService.toOpenURL(entity.getAttach_id()));
 
 
         return dto;
     }
 
-    private ArticleDTO toSimpleDTO(ArticleEntity entity) {
-        ArticleDTO dto = new ArticleDTO();
+    private ArticleSimpleDTO toSimpleDTO(ArticleEntity entity) {
+        ArticleSimpleDTO dto = new ArticleSimpleDTO();
         dto.setId(entity.getId());
         dto.setTitle(entity.getTitle());
         dto.setDescription(entity.getDescription());
         dto.setPublishedDate(entity.getPublishedDate());
 
-        dto.setImage(attachService.toOpenURLDTO(entity.getAttachId()));
+        dto.setAttachUrl(attachService.toOpenURL(entity.getAttachId()));
 
         return dto;
     }
 
-    private ArticleDTO toDTO(ArticleEntity entity) {
-        ArticleDTO dto = new ArticleDTO();
+    private ArticleResponseDTO toDTO(ArticleEntity entity) {
+        ArticleResponseDTO dto = new ArticleResponseDTO();
         dto.setId(entity.getId());
         dto.setTitle(entity.getTitle());
         dto.setDescription(entity.getDescription());
         dto.setContent(entity.getContent());
-
         dto.setProfileId(entity.getProfileId());
-
         dto.setUpdatedDate(entity.getUpdatedDate());
         dto.setCreatedDate(entity.getCreatedDate());
         dto.setPublishedDate(entity.getPublishedDate());
-
-        dto.setImage(attachService.toOpenURLDTO(entity.getAttachId()));
-
+        dto.setAttachUrl(attachService.toOpenURL(entity.getAttachId()));
         return dto;
     }
 

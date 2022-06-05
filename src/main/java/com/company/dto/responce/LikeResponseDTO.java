@@ -1,5 +1,6 @@
-package com.company.dto;
+package com.company.dto.responce;
 
+import com.company.dto.BaseDTO;
 import com.company.enums.LikeStatus;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Getter;
@@ -10,15 +11,8 @@ import javax.validation.constraints.NotNull;
 @Getter
 @Setter
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class LikeDTO extends BaseDTO {
-    @NotNull
+public class LikeResponseDTO extends BaseDTO {
     private LikeStatus status;
-    @NotNull
     private Integer profileId;
-    @NotNull
     private Integer articleId;
-
-
-    private Integer likeCount;
-    private Integer disLikeCount;
 }

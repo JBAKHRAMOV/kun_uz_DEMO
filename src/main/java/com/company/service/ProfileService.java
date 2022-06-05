@@ -1,8 +1,6 @@
 package com.company.service;
 
-import com.company.dto.AttachDTO;
 import com.company.dto.ProfileDTO;
-import com.company.entity.AttachEntity;
 import com.company.entity.ProfileEntity;
 import com.company.enums.ProfileStatus;
 import com.company.exp.EmailAlreadyExistsException;
@@ -71,8 +69,9 @@ public class ProfileService {
         return toDTO(entity);
     }
 
-    public ProfileEntity get(Integer id) {
-        return profileRepository.findById(id).orElseThrow(() -> new ItemNotFoundException("Not Found!"));
+    public ProfileEntity checkOrGet(Integer id) {
+        return profileRepository.findById(id)
+                .orElseThrow(() -> new ItemNotFoundException("Not Found!"));
     }
 
     public ProfileDTO update(Integer id, ProfileDTO dto) {
@@ -114,7 +113,7 @@ public class ProfileService {
     }
 
     public boolean updateImage(String attachId, Integer pId) {
-        ProfileEntity profileEntity = get(pId);
+        ProfileEntity profileEntity = checkOrGet(pId);
 
         if (profileEntity.getAttach() != null) {
             attachService.delete(profileEntity.getAttach().getId());

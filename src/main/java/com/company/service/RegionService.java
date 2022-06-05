@@ -4,15 +4,11 @@ import com.company.dto.RegionDTO;
 import com.company.entity.ProfileEntity;
 import com.company.entity.RegionEntity;
 import com.company.enums.LangEnum;
-import com.company.enums.ProfileRole;
-import com.company.exp.AppForbiddenException;
 import com.company.exp.ItemNotFoundException;
 import com.company.exp.RegionAlreadyExistsException;
-import com.company.repository.ProfileRepository;
 import com.company.repository.RegionRepository;
 import com.company.validation.RegionValidation;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.codec.language.bm.Lang;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -28,7 +24,7 @@ public class RegionService {
     private ProfileService profileService;
 
     public RegionDTO create(RegionDTO dto, Integer pId) {
-        ProfileEntity profileEntity = profileService.get(pId);
+        ProfileEntity profileEntity = profileService.checkOrGet(pId);
         RegionValidation.isValid(dto);
 
         Optional<RegionEntity> optional = regionRepository.findByKey(dto.getKey());
@@ -87,7 +83,7 @@ public class RegionService {
 
     public RegionDTO update(Integer id, RegionDTO dto) {
         RegionValidation.isValid(dto);
-        ProfileEntity profileEntity = profileService.get(dto.getProfileId());
+        ProfileEntity profileEntity = profileService.checkOrGet(dto.getProfileId());
 
         RegionEntity entity = regionRepository.findById(id).orElseThrow(() -> new ItemNotFoundException("Not Found!"));
 

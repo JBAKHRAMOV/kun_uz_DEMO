@@ -1,6 +1,5 @@
 package com.company.controller;
 
-import com.company.dto.ArticleTypeDTO;
 import com.company.dto.AttachDTO;
 import com.company.enums.ProfileRole;
 import com.company.service.AttachService;
@@ -8,7 +7,6 @@ import com.company.util.JwtUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

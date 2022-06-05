@@ -1,6 +1,6 @@
 package com.company.controller;
 
-import com.company.dto.ArticleTypeDTO;
+import com.company.dto.request.ArticleTypeRequestDTO;
 import com.company.enums.LangEnum;
 import com.company.enums.ProfileRole;
 import com.company.service.ArticleTypeService;
@@ -21,10 +21,10 @@ public class ArticleTypeController {
     private ArticleTypeService articleTypeService;
 
     @PostMapping("/adm")
-    public ResponseEntity<?> create(@RequestBody @Valid ArticleTypeDTO dto, HttpServletRequest request) {
+    public ResponseEntity<?> create(@RequestBody @Valid ArticleTypeRequestDTO dto, HttpServletRequest request) {
         log.info("create : {}", dto );
-        return ResponseEntity.ok(articleTypeService.create(dto,
-                JwtUtil.getIdFromHeader(request, ProfileRole.ADMIN)));
+        Integer profileId=JwtUtil.getIdFromHeader(request, ProfileRole.ADMIN);
+        return ResponseEntity.ok(articleTypeService.create(dto,profileId ));
     }
 
     @GetMapping("/adm/pagination")
@@ -47,9 +47,10 @@ public class ArticleTypeController {
     }
 
     @PutMapping("/adm/{id}")
-    public ResponseEntity<?> update(@PathVariable("id") Integer id, @RequestBody @Valid ArticleTypeDTO dto) {
+    public ResponseEntity<?> update(@PathVariable("id") Integer id, @RequestBody @Valid ArticleTypeRequestDTO dto, HttpServletRequest request) {
         log.info("update : {}", "id:  "+id+" "+dto );
-        return ResponseEntity.ok(articleTypeService.update(id, dto));
+        Integer profileId=JwtUtil.getIdFromHeader(request, ProfileRole.ADMIN);
+        return ResponseEntity.ok(articleTypeService.update(id, dto, profileId));
     }
 
     @DeleteMapping("/adm/{id}")

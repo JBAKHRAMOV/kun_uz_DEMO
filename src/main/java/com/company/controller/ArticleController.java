@@ -1,6 +1,5 @@
 package com.company.controller;
 
-import com.company.dto.ArticleDTO;
 import com.company.enums.ArticleStatus;
 import com.company.enums.LangEnum;
 import com.company.enums.ProfileRole;

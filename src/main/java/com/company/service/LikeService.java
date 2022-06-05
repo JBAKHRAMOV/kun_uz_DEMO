@@ -1,40 +1,37 @@
 package com.company.service;
 
-import com.company.dto.CommentDTO;
-import com.company.dto.LikeDTO;
-import com.company.entity.ArticleEntity;
-import com.company.entity.CommentEntity;
+import com.company.dto.request.LikeDetailDTO;
+import com.company.dto.request.LikeRequestDTO;
+import com.company.dto.responce.LikeCountDTO;
+import com.company.dto.responce.LikeResponseDTO;
 import com.company.entity.LikeEntity;
 import com.company.enums.ProfileRole;
 import com.company.exp.AppForbiddenException;
 import com.company.exp.ItemNotFoundException;
 import com.company.mapper.ArticleLikeDislikeMapper;
 import com.company.repository.LikeRepository;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Optional;
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class LikeService {
-    @Autowired
-    private LikeRepository likeRepository;
-    @Autowired
-    @Lazy
-    private ArticleService articleService;
 
-    public LikeDTO create(LikeDTO dto, Integer pId) {
+    private final LikeRepository likeRepository;
+
+    public LikeResponseDTO create(LikeRequestDTO dto, Integer pId) {
         Optional<LikeEntity> oldLikeOptional = likeRepository.findByArticleIdAndProfileId(dto.getArticleId(), pId);
+
         if (oldLikeOptional.isPresent()) {
-            oldLikeOptional.get().setStatus(dto.getStatus());
-            likeRepository.save(oldLikeOptional.get());
-            return dto;
+            var like=oldLikeOptional.get();
+            like.setStatus(dto.getStatus());
+            likeRepository.save(like);
+            return toDTO(like);
         }
 
         LikeEntity entity = new LikeEntity();
@@ -43,24 +40,19 @@ public class LikeService {
         entity.setProfileId(pId);
         likeRepository.save(entity);
 
-        dto.setId(entity.getId());
-        return dto;
+        return toDTO(entity);
     }
 
-    public boolean update(Integer likeId, LikeDTO dto, Integer pId) {
-        LikeEntity entity = get(likeId);
-        // validation
-        if (!entity.getProfileId().equals(pId)) {
+    public boolean update(Integer likeId, LikeDetailDTO dto, Integer pId) {
+
+        if (!checkOrGet(likeId).getProfileId().equals(pId)) {
             throw new AppForbiddenException("Not Access");
         }
-        entity.setStatus(dto.getStatus());
-        entity.setUpdatedDate(LocalDateTime.now());
-        likeRepository.save(entity);
-        return true;
+        return 0 < likeRepository.updateDetail(dto.getStatus(), LocalDateTime.now(), likeId);
     }
 
     public boolean delete(Integer likeId, Integer pId, ProfileRole role) {
-        LikeEntity entity = get(likeId);
+        LikeEntity entity = checkOrGet(likeId);
         if (entity.getProfileId().equals(pId) || role.equals(ProfileRole.ADMIN)) {
             likeRepository.delete(entity);
             return true;
@@ -68,72 +60,70 @@ public class LikeService {
         throw new AppForbiddenException("Not Access");
     }
 
-    public PageImpl<LikeDTO> listByArticleId(Integer articleId, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size,
-                Sort.by(Sort.Direction.DESC, "createdDate"));
+    public PageImpl<LikeResponseDTO> listByArticleId(Integer articleId, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size,Sort.Direction.DESC, "createdDate");
 
-        Page<LikeEntity> pageList = likeRepository.findAllByArticleId(articleId, pageable);
+        var pagination = likeRepository.findAllByArticleId(articleId, pageable);
 
-        List<LikeDTO> likeDTOList = new LinkedList<>();
-        for (LikeEntity entity : pageList.getContent()) {
-            likeDTOList.add(toDTO(entity));
-        }
-        return new PageImpl<LikeDTO>(likeDTOList, pageable, pageList.getTotalElements());
+        var list=pagination
+                .stream()
+                .map(this::toDTO)
+                .toList();
+
+        return new PageImpl<>(list, pageable, pagination.getTotalElements());
     }
 
-    public PageImpl<LikeDTO> listByProfileId(Integer profileId, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size,
-                Sort.by(Sort.Direction.DESC, "createdDate"));
+    public PageImpl<LikeResponseDTO> listByProfileId(Integer profileId, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.Direction.DESC, "createdDate");
 
-        Page<LikeEntity> pageList = likeRepository.findAllByProfileId(profileId, pageable);
+        var pagination = likeRepository.findAllByProfileId(profileId, pageable);
 
-        List<LikeDTO> likeDTOList = new LinkedList<>();
-        for (LikeEntity entity : pageList.getContent()) {
-            likeDTOList.add(toDTO(entity));
-        }
-        return new PageImpl<LikeDTO>(likeDTOList, pageable, pageList.getTotalElements());
+        var list=pagination
+                .stream()
+                .map(this::toDTO)
+                .toList();
+
+        return new PageImpl<>(list, pageable, pagination.getTotalElements());
     }
 
-    public PageImpl<LikeDTO> list(int page, int size) {
-        Pageable pageable = PageRequest.of(page, size,
-                Sort.by(Sort.Direction.DESC, "createdDate"));
+    public PageImpl<LikeResponseDTO> list(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size,Sort.Direction.DESC, "createdDate");
 
-        Page<LikeEntity> pageList = likeRepository.findAll(pageable);
+        var pagination = likeRepository.findAll(pageable);
 
-        List<LikeDTO> likeDTOList = new LinkedList<>();
-        for (LikeEntity entity : pageList.getContent()) {
-            likeDTOList.add(toDTO(entity));
-        }
-        return new PageImpl<LikeDTO>(likeDTOList, pageable, pageList.getTotalElements());
+        var list = pagination
+                .stream()
+                .map(this::toDTO)
+                .toList();
+
+        return new PageImpl<>(list, pageable, pagination.getTotalElements());
     }
 
-    public LikeEntity get(Integer likeId) {
+    public LikeResponseDTO getByArticleId(Integer articleId, Integer pId) {
+        var entity= likeRepository.findByArticleIdAndProfileId(articleId, pId)
+                .orElseThrow(()->new ItemNotFoundException("Item not found"));
+        return toDTO(entity);
+    }
+
+    public LikeEntity checkOrGet(Integer likeId) {
         return likeRepository.findById(likeId).orElseThrow(() -> {
             throw new ItemNotFoundException("Like Not found");
         });
     }
 
-    public LikeDTO getByArticleId(Integer articleId, Integer pId) {
-        Optional<LikeEntity> optional = likeRepository
-                .findByArticleIdAndProfileId(articleId, pId);
-        if (optional.isPresent()) {
-            return toDTO(optional.get());
-        }
-        return new LikeDTO();
-    }
 
-    public LikeDTO getLIkeAndDislikeCount(Integer articleId) {
+
+    public LikeCountDTO getLIkeAndDislikeCount(Integer articleId) {
         ArticleLikeDislikeMapper mapper = likeRepository.countArticleLikeAndDislike(articleId);
-        LikeDTO dto = new LikeDTO();
-        dto.setLikeCount(mapper.getLike_count());
-        dto.setDisLikeCount(mapper.getDislike_count());
 
-        return dto;
+        return new LikeCountDTO(
+                mapper.getLike_count(),
+                mapper.getLike_count());
     }
 
 
-    public LikeDTO toDTO(LikeEntity entity) {
-        LikeDTO dto = new LikeDTO();
+    public LikeResponseDTO toDTO(LikeEntity entity) {
+        LikeResponseDTO dto = new LikeResponseDTO();
         dto.setId(entity.getId());
         dto.setStatus(entity.getStatus());
         dto.setProfileId(entity.getProfileId());

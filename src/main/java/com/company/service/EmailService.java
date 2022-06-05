@@ -5,6 +5,7 @@ import com.company.entity.EmailEntity;
 import com.company.enums.EmailType;
 import com.company.exp.ItemNotFoundException;
 import com.company.repository.EmailRepository;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
@@ -12,22 +13,19 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMailMessage;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
+
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class EmailService {
-    @Autowired
-    private JavaMailSender javaMailSender;
-    @Autowired
-    private EmailRepository emailRepository;
+    private final JavaMailSender javaMailSender;
+    private final EmailRepository emailRepository;
 
     public void send(String toEmail, String title, String content) {
         SimpleMailMessage simple = new SimpleMailMessage();
-//        MimeMailMessage message = new MimeMailMessage();
         simple.setTo(toEmail);
         simple.setSubject(title);
         simple.setText(content);
@@ -42,12 +40,10 @@ public class EmailService {
     public List<EmailDTO> paginationList(int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "sendDate"));
 
-        List<EmailDTO> dtoList = new ArrayList<>();
-        emailRepository.findAll(pageable).stream().forEach(entity -> {
-            dtoList.add(toDTO(entity));
-        });
-
-        return dtoList;
+        return emailRepository.findAll(pageable)
+                .stream()
+                .map(this::toDTO)
+                .toList();
     }
 
     public Boolean delete(Integer id) {

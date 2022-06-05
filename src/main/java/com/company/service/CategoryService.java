@@ -1,44 +1,36 @@
 package com.company.service;
 
-import com.company.dto.CategoryDTO;
+import com.company.dto.request.CategoryRequestDTO;
+import com.company.dto.responce.CategoryResponseDTO;
 import com.company.entity.CategoryEntity;
-import com.company.entity.ProfileEntity;
 import com.company.enums.LangEnum;
-import com.company.enums.ProfileRole;
 import com.company.exp.AppBadRequestException;
-import com.company.exp.AppForbiddenException;
 import com.company.exp.CategoryAlredyExistsException;
 import com.company.repository.CategoryRepository;
-import com.company.validation.CategoryValidation;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.*;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.MethodNotAllowedException;
 
-import java.util.ArrayList;
+import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class CategoryService {
-    private final ProfileService profileService;
     private final CategoryRepository categoryRepository;
 
-    public CategoryDTO create(CategoryDTO dto, Integer pId) {
-        ProfileEntity profile = profileService.get(pId);
-        if (!profile.getRole().equals(ProfileRole.ADMIN)) {
-            log.warn("not access : {}", dto );
-            throw new AppForbiddenException("Not access");
-        }
-        CategoryValidation.isValid(dto);
-        CategoryEntity category = categoryRepository.findByKey(dto.getKey());
-        if (category != null) {
+    public CategoryResponseDTO create(CategoryRequestDTO dto, Integer pId) {
+
+        if (categoryRepository.findByKey(dto.getKey()) != null) {
             log.warn("category alredy exists : {}", dto );
             throw new CategoryAlredyExistsException("Category Already Exists");
         }
+
         CategoryEntity entity = new CategoryEntity();
         entity.setNameUz(dto.getNameUz());
         entity.setNameEn(dto.getNameEn());
@@ -47,83 +39,61 @@ public class CategoryService {
         entity.setProfileId(pId);
 
         categoryRepository.save(entity);
-        dto.setId(entity.getId());
-        dto.setCreatedDate(entity.getCreatedDate());
-        return dto;
+
+        return toDTO(entity);
     }
 
-    public PageImpl<CategoryDTO> getList(int page, int size) {
-        Sort sort = Sort.by(Sort.Direction.DESC, "id");
-        Pageable pageable = PageRequest.of(page, size, sort);
-        Page<CategoryEntity> pagination = categoryRepository.findAll(pageable);
+    public PageImpl<CategoryResponseDTO> getList(int page, int size) {
 
-        List<CategoryEntity> profileEntityList = pagination.getContent();
-        long totalElement = pagination.getTotalElements();
-        List<CategoryDTO> dtoList = profileEntityList.stream().map(this::toDTO).toList();
-        return new PageImpl<CategoryDTO>(dtoList, pageable, totalElement);
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
+
+        var pagination = categoryRepository.findAll(pageable);
+
+        var list = pagination
+                .stream()
+                .map(this::toDTO)
+                .toList();
+
+        return new PageImpl<>(list, pageable, pagination.getTotalElements());
     }
 
-    public CategoryDTO getById(Integer id) {
-        Optional<CategoryEntity> optional = categoryRepository.findById(id);
-        if (optional.isEmpty()) {
-            log.warn("id not found : {}", id );
-            throw new AppBadRequestException("Id Not Found");
-        }
-        CategoryEntity category = optional.get();
-        return toDTO(category);
+    public CategoryResponseDTO getById(Integer id) {
+        return toDTO(checkOrGet(id));
     }
 
-    public CategoryDTO getById(Integer id, LangEnum lang) {
-        Optional<CategoryEntity> optional = categoryRepository.findById(id);
-        if (optional.isEmpty()) {
-            log.warn("id not found : {}", id );
-            throw new AppBadRequestException("Id Not Found");
-        }
-        CategoryEntity category = optional.get();
-        return toDTO(category, lang);
+    public CategoryResponseDTO getById(Integer id, LangEnum lang) {
+        return toDTO(checkOrGet(id), lang);
     }
 
-    public String update(Integer id, CategoryDTO dto) {
-        ProfileEntity profile = profileService.get(dto.getProfileId());
-        if (!profile.getRole().equals(ProfileRole.ADMIN)) {
-            log.warn("not access : {}", dto );
-            throw new AppForbiddenException("Not access");
-        }
-        Optional<CategoryEntity> optional = categoryRepository.findById(id);
-        if (optional.isEmpty()) {
-            log.warn("id not found : {}", id );
-            throw new AppBadRequestException("Id Not Found");
-        }
-        CategoryValidation.isValid(dto);
-        CategoryEntity entity = categoryRepository.findByKey(dto.getKey());
-        if (entity != null) {
+    public Boolean update(Integer id, CategoryRequestDTO dto, Integer pId) {
+
+        if (categoryRepository.findByKey(dto.getKey()) != null) {
             log.warn("category alredy exists : {}", dto );
             throw new CategoryAlredyExistsException("Category alredy exists");
         }
-        CategoryEntity category = optional.get();
-        category.setNameUz(dto.getNameUz());
-        category.setNameEn(dto.getNameEn());
-        category.setNameRu(dto.getNameRu());
-        category.setKey(dto.getKey());
-        category.setProfileId(dto.getProfileId());
 
-        categoryRepository.save(category);
-        return "Success";
+        return 0< categoryRepository.updateDetail(dto.getNameUz(), dto.getNameRu(), dto.getNameEn(), dto.getKey(), pId, LocalDateTime.now(), id);
     }
 
     public String delete(Integer id) {
-        Optional<CategoryEntity> optional = categoryRepository.findById(id);
-        if (optional.isEmpty()) {
-            log.warn("id not found : {}", id );
-            throw new AppBadRequestException("Id Not Found");
-        }
-        CategoryEntity entity = optional.get();
-        categoryRepository.delete(entity);
+        categoryRepository.delete(checkOrGet(id));
         return "Success";
     }
 
-    private CategoryDTO toDTO(CategoryEntity entity) {
-        CategoryDTO dto = new CategoryDTO();
+    public List<CategoryResponseDTO> getListByLang(LangEnum lang) {
+        return categoryRepository.findAll()
+                .stream()
+                .map(entity->toDTO(entity, lang))
+                .toList();
+    }
+
+
+
+    /**
+     * OTHER METHODS*/
+
+    private CategoryResponseDTO toDTO(CategoryEntity entity) {
+        CategoryResponseDTO dto = new CategoryResponseDTO();
         dto.setId(entity.getId());
         dto.setNameUz(entity.getNameUz());
         dto.setNameEn(entity.getNameEn());
@@ -134,46 +104,20 @@ public class CategoryService {
         return dto;
     }
 
-    private CategoryDTO toDTO(CategoryEntity entity, LangEnum lang) {
-        CategoryDTO dto = new CategoryDTO();
+    private CategoryResponseDTO toDTO(CategoryEntity entity, LangEnum lang) {
+        CategoryResponseDTO dto = new CategoryResponseDTO();
         dto.setId(entity.getId());
         dto.setKey(entity.getKey());
         switch (lang) {
-            case uz:
-                dto.setName(entity.getNameUz());
-                break;
-            case ru:
-                dto.setName(entity.getNameRu());
-                break;
-            case en:
-                dto.setName(entity.getNameEn());
-                break;
+            case uz -> dto.setName(entity.getNameUz());
+            case ru -> dto.setName(entity.getNameRu());
+            case en -> dto.setName(entity.getNameEn());
         }
-
         return dto;
     }
 
-    public List<CategoryDTO> getRegionList(LangEnum lang) {
-        List<CategoryEntity> entityList = categoryRepository.findAll();
-
-        List<CategoryDTO> list = new ArrayList<>();
-        for (CategoryEntity entity : entityList) {
-            CategoryDTO dto = new CategoryDTO();
-            dto.setId(entity.getId());
-            dto.setKey(entity.getKey());
-            switch (lang) {
-                case uz: {
-                    dto.setName(entity.getNameUz());
-                }
-                case en: {
-                    dto.setName(entity.getNameEn());
-                }
-                case ru: {
-                    dto.setName(entity.getNameRu());
-                }
-            }
-            list.add(dto);
-        }
-        return list;
+    public CategoryEntity checkOrGet(Integer id){
+         return categoryRepository.findById(id)
+                 .orElseThrow(()->new AppBadRequestException("Id Not Found"));
     }
 }

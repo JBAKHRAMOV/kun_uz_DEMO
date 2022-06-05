@@ -1,10 +1,9 @@
 package com.company.controller;
 
-import com.company.dto.CategoryDTO;
+import com.company.dto.request.CategoryRequestDTO;
 import com.company.enums.LangEnum;
 import com.company.enums.ProfileRole;
 import com.company.service.CategoryService;
-import com.company.service.ProfileService;
 import com.company.util.JwtUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,9 +21,10 @@ public class CategoryController {
     private CategoryService categoryService;
 
     @PostMapping("/adm")
-    public ResponseEntity<?> create(@RequestBody @Valid CategoryDTO dto, HttpServletRequest request) {
+    public ResponseEntity<?> create(@RequestBody @Valid CategoryRequestDTO dto, HttpServletRequest request) {
         log.info("create : {}", dto );
-        return ResponseEntity.ok(categoryService.create(dto, JwtUtil.getIdFromHeader(request, ProfileRole.ADMIN)));
+        Integer profileId=JwtUtil.getIdFromHeader(request, ProfileRole.ADMIN);
+        return ResponseEntity.ok(categoryService.create(dto,profileId ));
     }
 
     @GetMapping("/adm/pagination")
@@ -43,13 +43,14 @@ public class CategoryController {
     @GetMapping("/public/list/{lang}")
     public ResponseEntity<?> getList(@PathVariable("lang") LangEnum lang) {
         log.info("get list : {}", lang );
-        return ResponseEntity.ok(categoryService.getRegionList(lang));
+        return ResponseEntity.ok(categoryService.getListByLang(lang));
     }
 
     @PutMapping("/adm/{id}")
-    public ResponseEntity<?> update(@PathVariable("id") Integer id, @RequestBody @Valid CategoryDTO dto) {
+    public ResponseEntity<?> update(@PathVariable("id") Integer id, @RequestBody @Valid CategoryRequestDTO dto, HttpServletRequest request) {
         log.info("update : {}", "id: "+id+" "+dto );
-        return ResponseEntity.ok(categoryService.update(id, dto));
+        Integer profileId=JwtUtil.getIdFromHeader(request);
+        return ResponseEntity.ok(categoryService.update(id, dto, profileId));
     }
 
     @DeleteMapping("/adm/{id}")

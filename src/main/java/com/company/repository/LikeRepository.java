@@ -8,8 +8,12 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
+import javax.transaction.Transactional;
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 public interface LikeRepository extends JpaRepository<LikeEntity, Integer> {
@@ -25,4 +29,9 @@ public interface LikeRepository extends JpaRepository<LikeEntity, Integer> {
             " sum( case  when status = 'LIKE' THEN 0 else 1 END ) dislike_count " +
             "from like_table where article_id = ?1", nativeQuery = true)
     public ArticleLikeDislikeMapper countArticleLikeAndDislike(Integer articleId);
+
+    @Transactional
+    @Modifying
+    @Query("update LikeEntity set status =:status,  updatedDate=:updDate where id =:id")
+    int updateDetail(@Param("status") LikeStatus status, @Param("updDate") LocalDateTime updDate, @Param("id") Integer id);
 }

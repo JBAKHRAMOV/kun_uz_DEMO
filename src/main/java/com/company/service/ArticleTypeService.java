@@ -1,34 +1,30 @@
 package com.company.service;
 
-import com.company.dto.ArticleTypeDTO;
+import com.company.dto.request.ArticleTypeRequestDTO;
+import com.company.dto.responce.ArticleTypeResponseDTO;
 import com.company.entity.ArticleTypeEntity;
 import com.company.enums.LangEnum;
-import com.company.enums.ProfileRole;
 import com.company.exp.AppBadRequestException;
-import com.company.exp.AppForbiddenException;
 import com.company.exp.RegionAlreadyExistsException;
 import com.company.repository.ArticleTypeRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.*;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class ArticleTypeService {
-    private final ProfileService profileService;
     private final ArticleTypeRepository articleTypeRepository;
 
-    public ArticleTypeDTO create(ArticleTypeDTO dto, Integer pId) {
-
-        if (!profileService.get(pId).equals(ProfileRole.ADMIN)) {
-            log.warn("not acsess : {}", pId );
-            throw new AppForbiddenException("Not access");
-        }
+    public ArticleTypeResponseDTO create(ArticleTypeRequestDTO dto, Integer pId) {
 
         if (articleTypeRepository.findByKey(dto.getKey()) != null) {
             log.warn("Region Alredy Exists : {}", dto );
@@ -44,12 +40,10 @@ public class ArticleTypeService {
 
         articleTypeRepository.save(entity);
 
-        dto.setId(entity.getId());
-        dto.setCreatedDate(entity.getCreatedDate());
-        return dto;
+        return toDTO(entity);
     }
 
-    public PageImpl<ArticleTypeDTO> getList(int page, int size) {
+    public PageImpl<ArticleTypeResponseDTO> getList(int page, int size) {
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
 
@@ -60,39 +54,27 @@ public class ArticleTypeService {
         return new PageImpl<>(list, pageable, pagination.getTotalElements());
     }
 
-    public ArticleTypeDTO getById(Integer id) {
+    public ArticleTypeResponseDTO getById(Integer id) {
         return toDTO(checkOrGet(id));
     }
 
-    public ArticleTypeDTO getById(Integer id, LangEnum lang) {
+    public ArticleTypeResponseDTO getById(Integer id, LangEnum lang) {
         return toDTO(checkOrGet(id), lang);
     }
 
-    public String update(Integer id, ArticleTypeDTO dto) {
-        if (!profileService.get(dto.getProfileId()).getRole().equals(ProfileRole.ADMIN)) {
-            log.warn("Not acsess : {}", id );
-            throw new AppForbiddenException("Not access");
-        }
+    public Boolean update(Integer id, ArticleTypeRequestDTO dto, Integer pId) {
 
-        var article = checkOrGet(id);
+        checkOrGet(id);
 
         if (articleTypeRepository.findByKey(dto.getNameUz()) != null) {
             log.warn("Region alredy exists : {}", dto );
             throw new RegionAlreadyExistsException("Region alredy exists");
         }
 
-        article.setNameUz(dto.getNameUz());
-        article.setNameEn(dto.getNameEn());
-        article.setNameRu(dto.getNameRu());
-        article.setKey(dto.getKey());
-        article.setProfileId(dto.getProfileId());
-
-        articleTypeRepository.save(article);
-
-        return "Success";
+       return 0 <  articleTypeRepository.updateDetail(dto.getNameUz(), dto.getNameRu(), dto.getNameEn(), dto.getKey(), pId, LocalDateTime.now(), id);
     }
 
-    public List<ArticleTypeDTO> getAllByLang(LangEnum lang) {
+    public List<ArticleTypeResponseDTO> getAllByLang(LangEnum lang) {
         return articleTypeRepository.findAll()
                 .stream()
                 .map(entity-> toDTO(entity, lang))
@@ -109,8 +91,8 @@ public class ArticleTypeService {
      * OTHER METHODS*/
 
 
-    private ArticleTypeDTO toDTO(ArticleTypeEntity entity) {
-        ArticleTypeDTO dto = new ArticleTypeDTO();
+    private ArticleTypeResponseDTO toDTO(ArticleTypeEntity entity) {
+        ArticleTypeResponseDTO dto = new ArticleTypeResponseDTO();
         dto.setId(entity.getId());
         dto.setNameUz(entity.getNameUz());
         dto.setNameEn(entity.getNameEn());
@@ -121,8 +103,8 @@ public class ArticleTypeService {
         return dto;
     }
 
-    private ArticleTypeDTO toDTO(ArticleTypeEntity entity, LangEnum lang) {
-        ArticleTypeDTO dto = new ArticleTypeDTO();
+    private ArticleTypeResponseDTO toDTO(ArticleTypeEntity entity, LangEnum lang) {
+        ArticleTypeResponseDTO dto = new ArticleTypeResponseDTO();
         dto.setId(entity.getId());
         dto.setKey(entity.getKey());
         switch (lang) {

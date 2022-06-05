@@ -1,110 +1,118 @@
 package com.company.service;
 
-import com.company.dto.CommentDTO;
-import com.company.entity.ArticleEntity;
+import com.company.dto.request.CommentDetailDTO;
+import com.company.dto.request.CommentRequestDTO;
+import com.company.dto.responce.CommentResponseDTO;
 import com.company.entity.CommentEntity;
 import com.company.enums.ProfileRole;
 import com.company.exp.AppForbiddenException;
 import com.company.exp.ItemNotFoundException;
 import com.company.repository.CommentRepository;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.LinkedList;
-import java.util.List;
+
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class CommentService {
-    @Autowired
-    private CommentRepository commentRepository;
-    @Autowired
-    private ArticleService articleService;
+    private final CommentRepository commentRepository;
+    private final ArticleService articleService;
 
-    public CommentDTO create(CommentDTO dto, Integer pId) {
-        ArticleEntity articleEntity = articleService.checkOrGet(dto.getArticleId());
-        CommentEntity commentEntity = new CommentEntity();
-        commentEntity.setContent(dto.getContent());
-        commentEntity.setArticleId(dto.getArticleId());
-        commentEntity.setProfileId(pId);
-        commentRepository.save(commentEntity);
+    public CommentResponseDTO create(CommentRequestDTO dto, Integer pId) {
 
-        dto.setId(commentEntity.getId());
-        return dto;
+        articleService.checkOrGet(dto.getArticleId());
+
+        CommentEntity entity = new CommentEntity();
+        entity.setContent(dto.getContent());
+        entity.setArticleId(dto.getArticleId());
+        entity.setProfileId(pId);
+
+        commentRepository.save(entity);
+
+        return toDTO(entity);
     }
 
-    public boolean update(Integer commentId, CommentDTO dto, Integer pId) {
-        CommentEntity commentEntity = get(commentId);
+    public boolean update(Integer commentId, CommentDetailDTO dto, Integer pId) {
 
-        if (!commentEntity.getProfileId().equals(pId)) {
+        if (!checkOrGet(commentId).getProfileId().equals(pId)) {
             log.warn("not access : {}", dto );
             throw new AppForbiddenException("Not Access");
         }
-        commentEntity.setContent(dto.getContent());
-        commentEntity.setUpdatedDate(LocalDateTime.now());
-        commentRepository.save(commentEntity);
-        return true;
+
+        return 0 < commentRepository.updateDetail(dto.getContent(), LocalDateTime.now(), commentId);
     }
 
     public boolean delete(Integer commentId, Integer pId, ProfileRole role) {
-        CommentEntity commentEntity = get(commentId);
-        if (commentEntity.getProfileId().equals(pId) || role.equals(ProfileRole.ADMIN)) {
-            commentRepository.delete(commentEntity);
+
+        CommentEntity entity = checkOrGet(commentId);
+
+        if (entity.getProfileId().equals(pId) || role.equals(ProfileRole.ADMIN)) {
+            commentRepository.delete(entity);
             return true;
         }
         throw new AppForbiddenException("Not Access");
     }
 
-    public PageImpl<CommentDTO> listByArticleId(Integer articleId, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size,
-                Sort.by(Sort.Direction.DESC, "createdDate"));
+    public PageImpl<CommentResponseDTO> listByArticleId(Integer articleId, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.Direction.DESC, "createdDate");
 
-        Page<CommentEntity> pageList = commentRepository.findAllByArticleId(articleId, pageable);
+        var pagination = commentRepository.findAllByArticleId(articleId, pageable);
 
-        List<CommentDTO> commentDTOList = new LinkedList<>();
-        for (CommentEntity commentEntity : pageList.getContent()) {
-            commentDTOList.add(toDTO(commentEntity));
-        }
-        return new PageImpl<CommentDTO>(commentDTOList, pageable, pageList.getTotalElements());
+        var list = pagination
+                .stream()
+                .map(this::toDTO)
+                .toList();
+
+        return new PageImpl<>(list, pageable, pagination.getTotalElements());
     }
 
-    public PageImpl<CommentDTO> listByProfileId(Integer profileId, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size,
-                Sort.by(Sort.Direction.DESC, "createdDate"));
+    public PageImpl<CommentResponseDTO> listByProfileId(Integer profileId, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.Direction.DESC, "createdDate");
 
-        Page<CommentEntity> pageList = commentRepository.findAllByProfileId(profileId, pageable);
+        var pagination = commentRepository.findAllByProfileId(profileId, pageable);
 
-        List<CommentDTO> commentDTOList = new LinkedList<>();
-        for (CommentEntity commentEntity : pageList.getContent()) {
-            commentDTOList.add(toDTO(commentEntity));
-        }
-        return new PageImpl<CommentDTO>(commentDTOList, pageable, pageList.getTotalElements());
+        var list=pagination
+                .stream()
+                .map(this::toDTO)
+                .toList();
+
+        return new PageImpl<>(list, pageable, pagination.getTotalElements());
     }
 
-    public PageImpl<CommentDTO> list(int page, int size) {
-        Pageable pageable = PageRequest.of(page, size,
-                Sort.by(Sort.Direction.DESC, "createdDate"));
+    public PageImpl<CommentResponseDTO> list(int page, int size) {
 
-        Page<CommentEntity> pageList = commentRepository.findAll(pageable);
+        Pageable pageable = PageRequest.of(page, size, Sort.Direction.DESC, "createdDate");
 
-        List<CommentDTO> commentDTOList = new LinkedList<>();
-        for (CommentEntity commentEntity : pageList.getContent()) {
-            commentDTOList.add(toDTO(commentEntity));
-        }
-        return new PageImpl<CommentDTO>(commentDTOList, pageable, pageList.getTotalElements());
+        var pagination = commentRepository.findAll(pageable);
+
+        var list=pagination
+                .stream()
+                .map(this::toDTO)
+                .toList();
+
+        return new PageImpl<>(list, pageable, pagination.getTotalElements());
     }
 
-    public CommentEntity get(Integer commentId) {
+
+
+    /**
+     * OTHER METHODS*/
+
+
+    public CommentEntity checkOrGet(Integer commentId) {
         return commentRepository.findById(commentId).orElseThrow(() -> {
             log.warn("id not found : {}", commentId );
             throw new ItemNotFoundException("Comment Not found");
         });
     }
 
-    public CommentDTO toDTO(CommentEntity entity) {
-        CommentDTO dto = new CommentDTO();
+    public CommentResponseDTO toDTO(CommentEntity entity) {
+        CommentResponseDTO dto = new CommentResponseDTO();
         dto.setId(entity.getId());
         dto.setContent(entity.getContent());
         dto.setProfileId(entity.getProfileId());

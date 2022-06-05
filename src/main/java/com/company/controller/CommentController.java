@@ -1,9 +1,8 @@
 package com.company.controller;
 
-import com.company.dto.CategoryDTO;
-import com.company.dto.CommentDTO;
 import com.company.dto.ProfileJwtDTO;
-import com.company.service.CategoryService;
+import com.company.dto.request.CommentDetailDTO;
+import com.company.dto.request.CommentRequestDTO;
 import com.company.service.CommentService;
 import com.company.util.JwtUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -24,16 +23,14 @@ public class CommentController {
     private CommentService commentService;
 
     @PostMapping("")
-    public ResponseEntity<?> create(@RequestBody @Valid CommentDTO dto,
-                                    HttpServletRequest request) {
+    public ResponseEntity<?> create(@RequestBody @Valid CommentRequestDTO dto, HttpServletRequest request) {
         log.info("create : {}", dto );
         Integer pId = JwtUtil.getIdFromHeader(request);
         return ResponseEntity.ok(commentService.create(dto, pId));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> update(@PathVariable("id") Integer commentId,
-                                    @RequestBody @Valid CommentDTO dto,
+    public ResponseEntity<?> update(@PathVariable("id") Integer commentId, @RequestBody @Valid CommentDetailDTO dto,
                                     HttpServletRequest request) {
         log.info("update : {}", "id: "+ commentId+" "+dto );
         Integer pId = JwtUtil.getIdFromHeader(request);

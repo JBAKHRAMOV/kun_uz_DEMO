@@ -1,10 +1,8 @@
 package com.company.controller;
 
-import com.company.dto.ArticleTypeDTO;
 import com.company.dto.TagDTO;
 import com.company.enums.LangEnum;
 import com.company.enums.ProfileRole;
-import com.company.service.ArticleTypeService;
 import com.company.service.TagService;
 import com.company.util.JwtUtil;
 import lombok.extern.slf4j.Slf4j;

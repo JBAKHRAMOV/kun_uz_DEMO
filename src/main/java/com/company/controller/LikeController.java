@@ -1,8 +1,6 @@
 package com.company.controller;
 
-import com.company.dto.LikeDTO;
 import com.company.dto.ProfileJwtDTO;
-import com.company.service.CommentService;
 import com.company.service.LikeService;
 import com.company.util.JwtUtil;
 import lombok.extern.slf4j.Slf4j;

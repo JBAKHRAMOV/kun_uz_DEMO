@@ -1,4 +1,4 @@
-package com.company.dto;
+package com.company.dto.responce;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Getter;
@@ -10,19 +10,11 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class CategoryDTO {
+public class CommentResponseDTO {
     private Integer id;
-    @NotNull
-    private String key;
-    @NotNull
-    private String name;
-    @NotNull
-    private String nameUz;
-    @NotNull
-    private String nameRu;
-    @NotNull
-    private String nameEn;
+    private String content;
     private Integer profileId;
+    private Integer articleId;
     private LocalDateTime createdDate;
-
+    private LocalDateTime updatedDate;
 }
