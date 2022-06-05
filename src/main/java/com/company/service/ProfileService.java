@@ -1,32 +1,31 @@
 package com.company.service;
 
-import com.company.dto.ProfileDTO;
+import com.company.dto.request.ProfileRequestDTO;
+import com.company.dto.responce.ProfileResponseDTO;
 import com.company.entity.ProfileEntity;
 import com.company.enums.ProfileStatus;
 import com.company.exp.EmailAlreadyExistsException;
 import com.company.exp.ItemNotFoundException;
 import com.company.repository.ProfileRepository;
-import com.company.validation.ProfileValidation;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.*;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
+
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class ProfileService {
-    @Autowired
-    private ProfileRepository profileRepository;
-    @Autowired
-    private AttachService attachService;
+    private final ProfileRepository profileRepository;
+    private final AttachService attachService;
 
-    public ProfileDTO create(ProfileDTO dto) {
-
-        ProfileValidation.isValid(dto); // validation
+    public ProfileResponseDTO create(ProfileRequestDTO dto) {
 
         Optional<ProfileEntity> optional = profileRepository.findByEmail(dto.getEmail());
         if (optional.isPresent()) {
@@ -41,75 +40,43 @@ public class ProfileService {
         entity.setPassword(dto.getPassword());
         entity.setRole(dto.getRole());
         entity.setStatus(ProfileStatus.ACTIVE);
+
         profileRepository.save(entity);
-        dto.setId(entity.getId());
-        return dto;
-    }
 
-    public List<ProfileDTO> paginationList(int page, int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdDate"));
-
-        List<ProfileDTO> list = new ArrayList<>();
-        profileRepository.findByVisible(true, pageable).forEach(courseEntity -> {
-            list.add(toDTO(courseEntity));
-        });
-        if (list.isEmpty()) {
-            log.warn(" not found : {}");
-            throw new ItemNotFoundException("Not Found!");
-        }
-        return list;
-    }
-
-    public ProfileDTO getById(Integer id) {
-        ProfileEntity entity = profileRepository.findById(id).orElseThrow(() -> new ItemNotFoundException("Not Found!"));
-        if (!entity.getVisible()) {
-            log.warn(" not found : {}" );
-            throw new ItemNotFoundException("Not Found!");
-        }
         return toDTO(entity);
     }
 
-    public ProfileEntity checkOrGet(Integer id) {
-        return profileRepository.findById(id)
-                .orElseThrow(() -> new ItemNotFoundException("Not Found!"));
+    public PageImpl<ProfileResponseDTO> paginationList(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.Direction.DESC, "createdDate");
+
+        var pagination=profileRepository.findByVisible(true, pageable);
+
+        var list =pagination
+                .stream()
+                .map(this::toDTO)
+                .toList();
+
+        return new PageImpl<>(list, pageable, pagination.getTotalElements());
     }
 
-    public ProfileDTO update(Integer id, ProfileDTO dto) {
-        ProfileValidation.isValid(dto); // validation
+    public ProfileResponseDTO getById(Integer id) {
+        return toDTO(getVisible(id));
+    }
 
-        Optional<ProfileEntity> optional = profileRepository.findByEmail(dto.getEmail());
-        if (optional.isPresent()) {
+    public  Boolean update(Integer id, ProfileRequestDTO dto) {
+
+        if (profileRepository.findByEmail(dto.getEmail()).isPresent()) {
             log.warn("email alredy used : {}", dto );
             throw new EmailAlreadyExistsException("This Email already used!");
         }
 
-        ProfileEntity entity = profileRepository.findById(id).orElseThrow(() -> new ItemNotFoundException("Not Found!"));
+        checkOrGet(id);
 
-        if (!entity.getVisible()) {
-            log.warn("id not found : {}", id );
-            throw new ItemNotFoundException("Not Found!");
-        }
-
-        entity.setName(dto.getName());
-        entity.setSurname(dto.getSurname());
-        entity.setEmail(dto.getEmail());
-        entity.setPassword(dto.getPassword());
-        entity.setUpdatedDate(LocalDateTime.now());
-        profileRepository.save(entity);
-
-        return toDTO(entity);
+       return 0 <  profileRepository.updateDetail(dto.getName(), dto.getSurname(), dto.getEmail(), dto.getPassword(), LocalDateTime.now(), id);
     }
 
     public Boolean delete(Integer id) {
-        ProfileEntity entity = profileRepository.findById(id).orElseThrow(() -> new ItemNotFoundException("Not Found!"));
-
-        if (!entity.getVisible()) {
-            log.warn("id not found : {}", id );
-            throw new ItemNotFoundException("Not Found!");
-        }
-
-        int n = profileRepository.updateVisible(false, id);
-        return n > 0;
+        return 0 < profileRepository.updateVisible(false, getVisible(id).getId());
     }
 
     public boolean updateImage(String attachId, Integer pId) {
@@ -123,8 +90,12 @@ public class ProfileService {
         return true;
     }
 
-    private ProfileDTO toDTO(ProfileEntity entity) {
-        ProfileDTO dto = new ProfileDTO();
+
+    /**
+     * OTHER METHODS*/
+
+    private ProfileResponseDTO toDTO(ProfileEntity entity) {
+        ProfileResponseDTO dto = new ProfileResponseDTO();
         dto.setId(entity.getId());
         dto.setName(entity.getName());
         dto.setSurname(entity.getSurname());
@@ -133,5 +104,21 @@ public class ProfileService {
         dto.setUpdatedDate(entity.getUpdatedDate());
         dto.setCreatedDate(entity.getCreatedDate());
         return dto;
+    }
+
+    public ProfileEntity getVisible(Integer id) {
+
+        ProfileEntity entity = profileRepository.findById(id)
+                .orElseThrow(() -> new ItemNotFoundException("Not Found!"));
+        if (!entity.getVisible()) {
+            log.warn(" not found : {},",id );
+            throw new ItemNotFoundException("Not Found!");
+        }
+        return entity;
+    }
+
+    public ProfileEntity checkOrGet(Integer id) {
+        return profileRepository.findById(id)
+                .orElseThrow(() -> new ItemNotFoundException("Not Found!"));
     }
 }

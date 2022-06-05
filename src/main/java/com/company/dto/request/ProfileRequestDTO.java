@@ -1,0 +1,30 @@
+package com.company.dto.request;
+
+import com.company.enums.ProfileRole;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
+
+import javax.validation.constraints.Email;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Size;
+
+@Getter
+@Setter
+@ToString
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class ProfileRequestDTO {
+    //name, surname, email, password, role,
+    @NotNull
+    @Size(min = 3, max = 15, message = "name size min=3 , max=15")
+    private String name;
+    @NotNull
+    @Size(min = 3, max = 15, message = "surname size min=3 , max=15")
+    private String surname;
+    @Email
+    private String email;
+    @NotNull
+    @Size(min = 3, max = 15, message = "password size min=3 , max=15")
+    private String password;
+    private ProfileRole role;}

@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import javax.transaction.Transactional;
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 public interface ProfileRepository extends JpaRepository<ProfileEntity, Integer> {
@@ -22,6 +23,17 @@ public interface ProfileRepository extends JpaRepository<ProfileEntity, Integer>
     @Modifying
     @Query("update ProfileEntity set visible = :visible where id = :id")
     int updateVisible(@Param("visible") Boolean visible, @Param("id") Integer id);
+
+//entity.setName(dto.getName());
+//        entity.setSurname(dto.getSurname());
+//        entity.setEmail(dto.getEmail());
+//        entity.setPassword(dto.getPassword());
+//        entity.setUpdatedDate(LocalDateTime.now());
+    @Transactional
+    @Modifying
+    @Query("update ProfileEntity set name = :name, surname=:surname, email=:email, password=:password, updatedDate=:upd where id = :id")
+    int updateDetail(@Param("name") String name,@Param("surname") String surname,  @Param("email") String email,
+                     @Param("password") String password, @Param("upd") LocalDateTime upd,@Param("id") Integer id);
 
     Optional<ProfileEntity> findByEmailAndPassword(String email, String password);
 

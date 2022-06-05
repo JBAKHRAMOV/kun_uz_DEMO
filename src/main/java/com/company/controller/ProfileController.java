@@ -2,6 +2,7 @@ package com.company.controller;
 
 import com.company.dto.AttachDTO;
 import com.company.dto.ProfileDTO;
+import com.company.dto.request.ProfileRequestDTO;
 import com.company.service.ProfileService;
 import com.company.util.JwtUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -22,7 +23,7 @@ public class ProfileController {
     private ProfileService profileService;
 
     @PostMapping("/adm")
-    public ResponseEntity<?> createProfile(@RequestBody @Valid ProfileDTO dto) {
+    public ResponseEntity<?> createProfile(@RequestBody @Valid ProfileRequestDTO dto) {
         log.info("create profile: {}",dto );
         return ResponseEntity.ok(profileService.create(dto));
     }
@@ -41,14 +42,14 @@ public class ProfileController {
     }
 
     @PutMapping("/adm/{id}")
-    public ResponseEntity<?> updateStudent(@PathVariable("id") Integer id,
-                                           @RequestBody @Valid ProfileDTO dto) {
+    public ResponseEntity<?> updateDetail(@PathVariable("id") Integer id,
+                                           @RequestBody @Valid ProfileRequestDTO dto) {
         log.info("update student: {}", "id: "+id+"  "+dto );
         return ResponseEntity.ok(profileService.update(id, dto));
     }
 
     @DeleteMapping("/adm/delete/{id}")
-    public ResponseEntity<?> deleteStudent(@PathVariable("id") Integer id) {
+    public ResponseEntity<?> delete(@PathVariable("id") Integer id) {
         log.info("delete student: {}", id );
         return ResponseEntity.ok(profileService.delete(id));
     }
